@@ -3,8 +3,8 @@ const path = require('path');
 const csv = require('csv-parser');
 
 // Khởi tạo Map lưu trữ dữ liệu
-const dataByAmount = new Map();
-const dataByDetail = new Map();
+let dataByAmount = new Map();
+let dataByDetail = new Map();
 
 // Hàm tải dữ liệu từ file CSV vào bộ nhớ
 const loadData = () => {
@@ -31,13 +31,40 @@ const loadData = () => {
                 }
                 dataByDetail.get(normalizedDetail).push(row);
             })
-            .on('end', resolve)
+            .on('end', () => {
+                // Sắp xếp dataByAmount theo key (số tiền)
+                dataByAmount = new Map(
+                    [...dataByAmount].sort((a, b) => Number(a[0]) - Number(b[0]))
+                );
+                resolve();
+            })
             .on('error', reject);
     });
 };
 
 const searchByCriteria = (startDate, endDate, minCredit, maxCredit, detail) => {
-    let results = Array.from(dataByDetail.values()).flat();
+    let results = [];
+    //lọc theo số tiền
+    if (minCredit || maxCredit) {
+        const min = minCredit ? Number(minCredit) : -Infinity;
+        const max = maxCredit ? Number(maxCredit) : Infinity;
+    
+        // Lọc các phần tử trong dataByAmount nằm trong khoảng minCredit và maxCredit
+        for (let [key, value] of dataByAmount.entries()) {
+            const credit = Number(key);
+    
+            if (credit > max) {
+                break; // Dừng lặp khi credit lớn hơn max vì dataByAmount đã được sắp xếp
+            }
+    
+            if (credit >= min) {
+                results = results.concat(value); // Thêm các phần tử vào results nếu nằm trong khoảng
+            }
+        }
+    } else {
+        // Nếu không có tiêu chí về số tiền, lấy tất cả các dữ liệu từ dataByDetail
+        results = Array.from(dataByDetail.values()).flat();
+    }
 
     // Lọc theo khoảng thời gian
     if (startDate || endDate) {
@@ -62,17 +89,6 @@ const searchByCriteria = (startDate, endDate, minCredit, maxCredit, detail) => {
             }
         });
     }
-
-    // Lọc theo khoảng số tiền
-    if (minCredit || maxCredit) {
-        results = results.filter(item => {
-            const credit = Number(item.credit);
-            if (minCredit && credit < Number(minCredit)) return false;
-            if (maxCredit && credit > Number(maxCredit)) return false;
-            return true;
-        });
-    }
-
     // Lọc theo nội dung
     if (detail) {
         const lowerDetail = detail.toLowerCase();
