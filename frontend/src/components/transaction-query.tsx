@@ -29,16 +29,30 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Switch } from "@/components/ui/switch"
+// import { Switch } from "@/components/ui/switch"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
-import { Toaster } from "sonner"
+import dynamic from 'next/dynamic'
 
+// Lazy load các components ít quan trọng
+const Toaster = dynamic(() => import('sonner').then(mod => mod.Toaster), {
+  ssr: false
+})
 
-
-
+// Lazy load tooltip components
+const TooltipProvider = dynamic(() => 
+  import("@/components/ui/tooltip").then(mod => mod.TooltipProvider)
+)
+const Tooltip = dynamic(() => 
+  import("@/components/ui/tooltip").then(mod => mod.Tooltip)
+)
+const TooltipContent = dynamic(() => 
+  import("@/components/ui/tooltip").then(mod => mod.TooltipContent)
+)
+const TooltipTrigger = dynamic(() => 
+  import("@/components/ui/tooltip").then(mod => mod.TooltipTrigger)
+)
 
 // Cập nhật interface Transaction để match với format data
 interface Transaction {
@@ -92,6 +106,11 @@ function generatePaginationNumbers(currentPage: number, totalPages: number) {
   return rangeWithDots;
 }
 
+
+const ThemeToggle = dynamic(() => import('@/components/theme-toggle'), {
+  ssr: false
+})
+
 export function TransactionQueryComponent() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -105,11 +124,14 @@ export function TransactionQueryComponent() {
   const [sortDirection, setSortDirection] = useState('asc')
   const [currentPage, setCurrentPage] = useState(1)
   const [isFilterExpanded, setIsFilterExpanded] = useState(true)
+  const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const { theme, setTheme } = useTheme()
   
   // Define itemsPerPage as a constant
   const itemsPerPage = 10
+
+  // Thêm state để kiểm soát việc render results
+  const [showResults, setShowResults] = useState(false)
 
   // Handle mounting state
   useEffect(() => {
@@ -195,6 +217,7 @@ export function TransactionQueryComponent() {
             
             setResults(transformedData);
             setCurrentPage(1);
+            setShowResults(true);
             
             if (data.data.length === 0) {
                 toast.info('Không tìm thấy kết quả phù hợp', {
@@ -261,7 +284,7 @@ export function TransactionQueryComponent() {
     }
   }
 
-  // Thêm hàm helper để format date time
+  // Hàm format date time
   function formatDateTime(dateTimeStr: string): string {
     // Input format: "04/09/2024_5245.19623"
     // Tách phần ngày và phần thời gian
@@ -297,25 +320,7 @@ export function TransactionQueryComponent() {
 
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary"></h1>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center space-x-2">
-                <Sun className="h-4 w-4" />
-                <Switch
-                  checked={theme === "dark"}
-                  onCheckedChange={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <Moon className="h-4 w-4" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Toggle dark mode</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <ThemeToggle />
       </div>
 
       <Card className="bg-card text-card-foreground shadow-lg border-border">
@@ -417,7 +422,7 @@ export function TransactionQueryComponent() {
         </Card>
       )}
 
-      {results.length > 0 && (
+      {showResults && results.length > 0 && (
         <Card className="bg-card text-card-foreground shadow-lg border-border">
           <CardHeader>
             <div className="flex justify-between items-center">
