@@ -59,7 +59,7 @@ docker-compose up
 ## Setup without Docker (For Development)
 ### Clone this repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/ThangNeo2210/transaction-query-web.git
 ```
 ### Backend Setup
 1. Navigate to backend folder: 
