@@ -19,13 +19,18 @@ loadData().then(() => {
 });
 
 // API tìm kiếm
-app.get('/search', (req, res) => {
-    const { startDate, endDate, minCredit, maxCredit, detail } = req.query;
-
-    console.log(startDate, endDate, minCredit, maxCredit, detail)
+app.get('/query', (req, res) => {
+    const { startDate, endDate, minCredit, maxCredit, q } = req.query;
+    
     try {
-        const results = searchByCriteria(startDate, endDate, minCredit, maxCredit, detail);
-        res.status(200).json({ success: true, data: results });
+        const { total, records } = searchByCriteria(startDate, endDate, minCredit, maxCredit, q);
+        console.log("Total records:", total)
+        res.status(200).json({ 
+            success: true, 
+            total,
+            data: records 
+        });
+
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });

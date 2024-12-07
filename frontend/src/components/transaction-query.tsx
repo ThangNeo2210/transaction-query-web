@@ -198,11 +198,11 @@ export function TransactionQueryComponent() {
         if (endDate) params.append('endDate', endDate)
         if (minCredit) params.append('minCredit', minCredit)
         if (maxCredit) params.append('maxCredit', maxCredit)
-        if (searchTerm) params.append('detail', searchTerm)
+        if (searchTerm) params.append('q', searchTerm)
 
         
         // Gọi API backend
-        const response = await fetch(`http://localhost:3001/search?${params.toString()}`)
+        const response = await fetch(`http://localhost:3001/query?${params.toString()}`)
         const data: SearchResponse = await response.json()
 
 

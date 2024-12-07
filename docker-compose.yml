@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  backend:
+    image: thanghub2210/saoke-backend:latest
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./data:/app/data
+    container_name: saoke-backend
+
+  frontend:
+    image: thanghub2210/saoke-frontend:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    container_name: saoke-frontend 

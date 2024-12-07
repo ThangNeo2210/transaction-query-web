@@ -2,7 +2,21 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 
-// Khởi tạo Map lưu trữ dữ liệu
+// chuyển đổi chuỗi có dấu thành không dấu
+const removeVietnameseTones = (str) => {
+    if (!str) return str;
+    str = str.toLowerCase();
+    str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+    str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+    str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+    str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+    str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+    str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+    str = str.replace(/đ/g, "d");
+    return str;
+};
+
+
 let dataByAmount = new Map();
 let dataByDetail = new Map();
 
@@ -25,7 +39,8 @@ const loadData = () => {
                 }
                 dataByAmount.get(amount).push(row);
                 
-                const normalizedDetail = detail ? detail.trim().toLowerCase() : '';
+                // Chuyển đổi detail thành không dấu trước khi lưu vào Map
+                const normalizedDetail = detail ? removeVietnameseTones(detail.trim()) : '';
                 if (!dataByDetail.has(normalizedDetail)) {
                     dataByDetail.set(normalizedDetail, []);
                 }
@@ -49,20 +64,18 @@ const searchByCriteria = (startDate, endDate, minCredit, maxCredit, detail) => {
         const min = minCredit ? Number(minCredit) : -Infinity;
         const max = maxCredit ? Number(maxCredit) : Infinity;
     
-        // Lọc các phần tử trong dataByAmount nằm trong khoảng minCredit và maxCredit
         for (let [key, value] of dataByAmount.entries()) {
             const credit = Number(key);
     
             if (credit > max) {
-                break; // Dừng lặp khi credit lớn hơn max vì dataByAmount đã được sắp xếp
+                break;
             }
     
             if (credit >= min) {
-                results = results.concat(value); // Thêm các phần tử vào results nếu nằm trong khoảng
+                results = results.concat(value);
             }
         }
     } else {
-        // Nếu không có tiêu chí về số tiền, lấy tất cả các dữ liệu từ dataByDetail
         results = Array.from(dataByDetail.values()).flat();
     }
 
@@ -73,11 +86,8 @@ const searchByCriteria = (startDate, endDate, minCredit, maxCredit, detail) => {
 
         results = results.filter(item => {
             try {
-                // Chỉ lấy phần ngày tháng (trước dấu _)
-                const dateStr = item.date_time.split('_')[0];  // Lấy "01/09/2024"
+                const dateStr = item.date_time.split('_')[0];
                 const [day, month, year] = dateStr.split('/');
-                
-                // Chuyển đổi sang Date object để so sánh
                 const transDate = new Date(`${year}-${month}-${day}T00:00:00`);
 
                 if (startDateObj && transDate < startDateObj) return false;
@@ -91,13 +101,17 @@ const searchByCriteria = (startDate, endDate, minCredit, maxCredit, detail) => {
     }
     // Lọc theo nội dung
     if (detail) {
-        const lowerDetail = detail.toLowerCase();
+        const normalizedSearchDetail = removeVietnameseTones(detail);
         results = results.filter(item => 
-            item.detail && item.detail.toLowerCase().includes(lowerDetail)
+            item.detail && removeVietnameseTones(item.detail.toLowerCase()).includes(normalizedSearchDetail)
         );
     }
 
-    return results;
+    
+    return {
+        total: results.length,
+        records: results
+    };
 };
 
 module.exports = { loadData, searchByCriteria };
